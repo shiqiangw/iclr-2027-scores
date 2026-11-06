@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>ICLR 2027 Scores</title>
-<meta name="description" content="Score distributions and paper list for ICLR 2027 submissions during the discussion period.">
+<title>ICLR 2027 Scores Explorer by Primary Area</title>
+<meta name="description" content="Score distributions, primary area statistics, and paper rankings for ICLR 2027 submissions on OpenReview.">
 <style>
 :root {
   color-scheme: light;
@@ -35,8 +35,75 @@ h2 { font-size: 18px; margin: 40px 0 12px; }
 h3 { font-size: 14px; margin: 0 0 2px; font-weight: 600; }
 .sub { color: var(--text-2); margin: 0; }
 .note { color: var(--text-3); font-size: 13px; margin: 2px 0 8px; }
-a { color: var(--link); }
-.tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-top: 24px; }
+a { color: var(--link); text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+.filter-bar {
+  display: flex; flex-direction: column; gap: 12px; margin: 20px 0 16px; padding: 14px 16px;
+  background: var(--card); border: 1px solid var(--line); border-radius: 8px;
+}
+.filter-row {
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px;
+}
+.filter-group { display: flex; align-items: center; gap: 10px; flex: 1 1 300px; }
+.filter-group label { font-size: 14px; font-weight: 600; color: var(--text-2); white-space: nowrap; }
+.filter-group select {
+  flex: 1; min-width: 200px; max-width: 460px; padding: 8px 12px; font: inherit; font-size: 14px;
+  color: var(--text); background: var(--surface); border: 1px solid var(--line); border-radius: 6px;
+  cursor: pointer;
+}
+.filter-info { font-size: 13px; color: var(--text-2); }
+
+.kw-container { position: relative; width: 100%; display: flex; flex-direction: column; gap: 6px; }
+.kw-label-row { display: flex; justify-content: space-between; align-items: center; }
+.kw-label-row label { font-size: 13px; font-weight: 600; color: var(--text-2); }
+.kw-selector {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding: 6px 10px; min-height: 40px;
+  background: var(--surface); border: 1px solid var(--line); border-radius: 6px; cursor: text;
+}
+.kw-selector:focus-within { border-color: var(--series); }
+.kw-chips { display: flex; flex-wrap: wrap; gap: 5px; }
+.kw-chip {
+  display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; font-size: 12px; font-weight: 500;
+  background: var(--card); color: var(--series); border: 1px solid var(--series); border-radius: 14px;
+}
+.kw-chip button {
+  border: 0; background: none; padding: 0 2px; color: inherit; font-size: 14px; line-height: 1; cursor: pointer;
+}
+.kw-selector input {
+  flex: 1 1 180px; min-width: 140px; border: 0; outline: 0; background: transparent; font: inherit; font-size: 13px;
+  color: var(--text); padding: 4px 0;
+}
+.kw-clear-btn {
+  border: 0; background: none; font-size: 16px; color: var(--text-3); cursor: pointer; padding: 0 4px;
+}
+.kw-clear-btn:hover { color: var(--text); }
+.kw-dropdown {
+  position: absolute; top: calc(100% + 4px); left: 0; right: 0; z-index: 25; max-height: 280px;
+  background: var(--card); border: 1px solid var(--line); border-radius: 6px;
+  box-shadow: 0 6px 20px rgba(0,0,0,0.18); display: flex; flex-direction: column; overflow: hidden;
+}
+.kw-dropdown-header {
+  display: flex; justify-content: space-between; align-items: center; padding: 6px 12px; font-size: 11px;
+  color: var(--text-3); background: var(--row); border-bottom: 1px solid var(--grid);
+}
+.kw-list { overflow-y: auto; max-height: 240px; padding: 4px 0; }
+.kw-item {
+  display: flex; align-items: center; justify-content: space-between; padding: 6px 12px; font-size: 13px;
+  cursor: pointer; user-select: none; gap: 8px;
+}
+.kw-item:hover { background: var(--row); }
+.kw-item.selected { font-weight: 600; color: var(--series); }
+.kw-count { font-size: 11px; color: var(--text-3); }
+.kw-tags { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 5px; }
+.kw-tag {
+  font-size: 11px; padding: 1px 6px; border-radius: 4px; background: var(--surface); color: var(--text-3);
+  border: 1px solid var(--grid); cursor: pointer;
+}
+.kw-tag:hover { border-color: var(--series); color: var(--series); }
+.kw-tag.selected { background: var(--series); color: #fff; border-color: var(--series); font-weight: 600; }
+
+.tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-top: 16px; }
 .tile, .chart { background: var(--card); border: 1px solid var(--line); border-radius: 8px; padding: 14px 16px; }
 .tile b { display: block; font-size: 24px; line-height: 1.2; font-variant-numeric: tabular-nums; font-weight: 600; }
 .tile span { color: var(--text-2); font-size: 13px; }
@@ -47,10 +114,6 @@ svg text { fill: var(--text-3); font-size: 11px; font-variant-numeric: tabular-n
 .hit { fill: transparent; }
 svg text.lab { fill: var(--text-2); font-weight: 600; }
 .guide { stroke: var(--text-3); stroke-width: 1; stroke-dasharray: 3 3; }
-.bar { fill: var(--series); pointer-events: none; }
-.barhit { fill: transparent; }
-.barhit:hover { fill: var(--row); }
-svg text.lab { pointer-events: none; }
 .gridline { stroke: var(--grid); stroke-width: 1; }
 .base { stroke: var(--line); stroke-width: 1; }
 .trend { fill: none; stroke: var(--series); stroke-width: 2; }
@@ -66,67 +129,132 @@ button { font: inherit; color: var(--text); background: var(--card); border: 1px
 button:disabled { color: var(--text-3); cursor: default; }
 .tablewrap { overflow-x: auto; background: var(--card); border: 1px solid var(--line); border-radius: 8px; }
 table { border-collapse: collapse; width: 100%; font-variant-numeric: tabular-nums; }
-th, td { padding: 8px 10px; text-align: left; border-bottom: 1px solid var(--grid); vertical-align: top; }
+th, td { padding: 8px 10px; text-align: left; border-bottom: 1px solid var(--grid); vertical-align: middle; }
 tbody tr:last-child td { border-bottom: 0; }
 tbody tr:hover { background: var(--row); }
 th { font-size: 13px; color: var(--text-2); font-weight: 600; white-space: nowrap; }
 th button { border: 0; background: none; padding: 0; color: inherit; font-weight: 600; font-size: 13px; }
 td.num, th.num { text-align: right; white-space: nowrap; }
 td.title { min-width: 280px; }
+.badge {
+  display: inline-block; padding: 2px 7px; font-size: 11px; font-weight: 500; border-radius: 4px;
+  background: var(--row); color: var(--text-2); border: 1px solid var(--line); cursor: pointer;
+  white-space: nowrap; text-decoration: none;
+}
+.badge:hover { border-color: var(--series); color: var(--series); }
 .pager { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-top: 10px; color: var(--text-2); font-size: 13px; }
 .pager div { display: flex; gap: 6px; }
 footer { margin-top: 40px; color: var(--text-3); font-size: 13px; }
-details { margin-top: 10px; font-size: 13px; color: var(--text-2); }
-details table { margin-top: 6px; max-width: 420px; }
-details td, details th { padding: 3px 8px; }
-.sectionhead { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px 16px; margin: 40px 0 8px; }
-.sectionhead h2 { margin: 0; }
-.seg { display: inline-flex; }
-.seg button { border-radius: 0; margin-left: -1px; }
-.seg button:first-child { border-radius: 6px 0 0 6px; margin-left: 0; }
-.seg button:last-child { border-radius: 0 6px 6px 0; }
-.seg button[aria-pressed="true"] { background: var(--text); border-color: var(--text); color: var(--surface); }
-.explain { color: var(--text-2); margin: 0 0 12px; max-width: 76ch; }
+details { margin-top: 16px; font-size: 13px; color: var(--text-2); }
+details summary { cursor: pointer; font-weight: 600; margin-bottom: 6px; }
+details table { margin-top: 6px; width: 100%; max-width: 760px; }
+details td, details th { padding: 4px 8px; }
 [hidden] { display: none !important; }
 </style>
 </head>
 <body>
 <main>
-  <h1>ICLR 2027 Scores</h1>
-  <p class="sub" id="sub">Loading…</p>
-  <div class="tiles" id="tiles"></div>
+  <h1>ICLR 2027 Scores Explorer</h1>
+  <p class="sub" id="sub">Loading conference data…</p>
 
-  <div class="sectionhead">
-    <h2>Score distributions</h2>
-    <div class="seg" role="group" aria-label="Chart type">
-      <button type="button" id="viewCdf" aria-pressed="true">CDF curves</button>
-      <button type="button" id="viewHist" aria-pressed="false">Histograms</button>
+  <div class="filter-bar">
+    <div class="filter-row">
+      <div class="filter-group">
+        <label for="areaFilter">Primary Area:</label>
+        <select id="areaFilter" aria-label="Select Primary Area">
+          <option value="">All Areas (Loading…)</option>
+        </select>
+      </div>
+      <div class="filter-info" id="filterInfo"></div>
+    </div>
+    <div class="kw-container">
+      <div class="kw-label-row">
+        <label for="kwInput">Keywords Filter:</label>
+        <span id="kwSelectedCount" style="font-size: 12px; color: var(--text-3);"></span>
+      </div>
+      <div class="kw-selector" id="kwSelector">
+        <div class="kw-chips" id="kwChips"></div>
+        <input type="text" id="kwInput" placeholder="Filter by keywords (search and select)..." autocomplete="off" aria-label="Search keywords to filter">
+        <button type="button" class="kw-clear-btn" id="kwClearBtn" title="Clear keyword filters" style="display: none;">&times;</button>
+      </div>
+      <div class="kw-dropdown" id="kwDropdown" style="display: none;">
+        <div class="kw-dropdown-header">
+          <span id="kwDropdownCount">0 keywords</span>
+          <span>Click to toggle filter</span>
+        </div>
+        <div class="kw-list" id="kwList"></div>
+      </div>
     </div>
   </div>
-  <p class="explain" id="explain"></p>
+
+  <div class="tiles" id="tiles"></div>
+
+  <h2>Score distributions (CDF)</h2>
   <div class="grid2">
-    <div class="chart"><h3>Mean rating per paper</h3><p class="note" id="meanNote"></p><div id="meanChart"></div></div>
-    <div class="chart"><h3>Individual ratings</h3><p class="note" id="ratingNote"></p><div id="ratingChart"></div></div>
+    <div class="chart">
+      <h3 id="meanChartTitle">Mean rating per paper</h3>
+      <p class="note" id="meanNote"></p>
+      <div id="meanChart"></div>
+    </div>
+    <div class="chart">
+      <h3 id="ratingChartTitle">Individual ratings</h3>
+      <p class="note" id="ratingNote"></p>
+      <div id="ratingChart"></div>
+    </div>
   </div>
   <div class="grid3" id="otherCharts"></div>
-  <details><summary>Show these distributions as tables</summary><div id="dataTables"></div></details>
+
+  <details id="areaOverviewDetails">
+    <summary>Show Primary Area Comparison Table</summary>
+    <div class="tablewrap" style="margin-top: 8px;">
+      <table id="areaSummaryTable">
+        <thead>
+          <tr>
+            <th>Primary Area</th>
+            <th class="num">Papers</th>
+            <th class="num">Share</th>
+            <th class="num">Avg Mean</th>
+            <th class="num">Median</th>
+            <th class="num">Top 10%</th>
+            <th class="num">Top 25%</th>
+            <th class="num">% ≥ 3.0</th>
+            <th class="num">% ≥ 2.67</th>
+          </tr>
+        </thead>
+        <tbody id="areaSummaryBody"></tbody>
+      </table>
+    </div>
+  </details>
+
+  <details>
+    <summary>Show distributions as numerical tables</summary>
+    <div id="dataTables"></div>
+  </details>
 
   <section id="trendSection" hidden>
     <h2>Change during discussion</h2>
-    <div class="chart"><h3>Average rating by snapshot</h3><p class="note">Mean of all individual ratings at each snapshot.</p><div id="trendChart"></div></div>
+    <div class="chart">
+      <h3>Average rating by snapshot</h3>
+      <p class="note">Mean of all individual ratings at each snapshot.</p>
+      <div id="trendChart"></div>
+    </div>
   </section>
 
   <h2>Papers</h2>
   <div class="controls">
-    <input type="search" id="search" placeholder="Search titles" aria-label="Search paper titles">
+    <input type="search" id="search" placeholder="Search titles or primary areas…" aria-label="Search papers">
   </div>
   <div class="tablewrap"><table>
     <thead><tr id="head"></tr></thead>
     <tbody id="rows"></tbody>
   </table></div>
-  <div class="pager"><span id="count">Loading papers…</span><div>
-    <button id="prev">Previous</button><button id="next">Next</button>
-  </div></div>
+  <div class="pager">
+    <span id="count">Loading papers…</span>
+    <div>
+      <button id="prev">Previous</button>
+      <button id="next">Next</button>
+    </div>
+  </div>
 
   <footer id="foot"></footer>
 </main>
@@ -140,12 +268,25 @@ const cap = s => s[0].toUpperCase() + s.slice(1);
 const pct = p => (p * 100).toFixed(1) + "%";
 const when = iso => new Date(iso).toLocaleString("en-US", { dateStyle: "medium", timeStyle: "short", timeZone: "UTC" }) + " UTC";
 
+let globalSite = null;
+let allPapers = [];
+let selectedArea = "";
+let terms = [];
+let sortBy = "rank";
+let dir = 1;
+let page = 0;
+let filteredPapers = [];
+const selectedKeywords = new Set();
+const keywordCounts = new Map();
+const keywordDisplayNames = new Map();
+
 function el(tag, attrs = {}, parent) {
   const node = document.createElementNS(SVG, tag);
   for (const k in attrs) node.setAttribute(k, attrs[k]);
   if (parent) parent.appendChild(node);
   return node;
 }
+
 function tip(node, text) {
   const tipEl = $("tip");
   node.addEventListener("mousemove", e => {
@@ -155,43 +296,45 @@ function tip(node, text) {
   });
   node.addEventListener("mouseleave", () => { tipEl.style.display = "none"; });
 }
-function niceMax(v) {
-  const p = 10 ** Math.floor(Math.log10(Math.max(v, 1)));
-  for (const m of [1, 2, 2.5, 5, 10]) if (m * p >= v) return m * p;
-  return v;
-}
-// Running totals for [[value, count], ...] sorted by value.
-function cumulative(data) {
-  const total = data.reduce((sum, d) => sum + d[1], 0);
-  let running = 0;
-  return data.map(([v, c]) => { running += c; return { v, c, n: running, p: running / total }; });
-}
+
 // Empirical CDF drawn as a step line. data is [[value, count], ...] sorted by value.
 function cdfChart(host, data, { w = 480, h = 240, name, unit, describe, xStep }) {
+  if (!data || !data.length) {
+    host.replaceChildren(document.createTextNode("No rating data available."));
+    return [];
+  }
   const m = { t: 20, r: 12, b: 24, l: 42 }, iw = w - m.l - m.r, ih = h - m.t - m.b;
-  const pts = cumulative(data);
+  const total = data.reduce((sum, d) => sum + d[1], 0);
+  let running = 0;
+  const pts = data.map(([v, c]) => { running += c; return { v, n: running, p: running / total }; });
   const labelled = pts.length <= 6;
   const lo = pts[0].v, hi = pts[pts.length - 1].v, pad = Math.max((hi - lo) * (labelled ? .14 : .06), .1);
   const X = v => m.l + iw * (v - (lo - pad)) / (hi - lo + 2 * pad), Y = p => m.t + ih * (1 - p);
   const invX = x => lo - pad + (x - m.l) / iw * (hi - lo + 2 * pad);
   const svg = el("svg", { viewBox: `0 0 ${w} ${h}`, role: "img", "aria-label": describe });
+
   for (const q of [0, .25, .5, .75, 1]) {
     el("line", { x1: m.l, x2: w - m.r, y1: Y(q), y2: Y(q), class: q ? "gridline" : "base" }, svg);
     el("text", { x: m.l - 6, y: Y(q) + 4, "text-anchor": "end" }, svg).textContent = `${q * 100}%`;
   }
-  for (let v = Math.ceil(lo / xStep) * xStep; v <= hi + 1e-9; v += xStep)
+  for (let v = Math.ceil(lo / xStep) * xStep; v <= hi + 1e-9; v += xStep) {
     el("text", { x: X(v), y: h - 6, "text-anchor": "middle" }, svg).textContent = +v.toFixed(2);
-  let d = `M${m.l},${Y(0)}`, prev = 0;
-  for (const pt of pts) { d += `H${X(pt.v)}V${Y(pt.p)}`; prev = pt.p; }
+  }
+
+  let d = `M${m.l},${Y(0)}`;
+  for (const pt of pts) { d += `H${X(pt.v)}V${Y(pt.p)}`; }
   el("path", { class: "trend", d: d + `H${w - m.r}` }, svg);
+
   if (labelled) pts.forEach(pt => {
     el("circle", { class: "dot", cx: X(pt.v), cy: Y(pt.p), r: 4 }, svg);
     el("text", { class: "lab", x: X(pt.v), y: Y(pt.p) - 8, "text-anchor": "middle" }, svg).textContent = pct(pt.p);
   });
+
   const guide = el("line", { class: "guide", y1: m.t, y2: m.t + ih, visibility: "hidden" }, svg);
   const mark = el("circle", { class: "dot", r: 5, visibility: "hidden" }, svg);
   const hit = el("rect", { class: "hit", x: m.l, y: m.t, width: iw, height: ih }, svg);
   const tipEl = $("tip");
+
   hit.addEventListener("pointermove", e => {
     const box = svg.getBoundingClientRect(), x = (e.clientX - box.left) * w / box.width, at = invX(x);
     let cur = null;
@@ -209,47 +352,11 @@ function cdfChart(host, data, { w = 480, h = 240, name, unit, describe, xStep })
   hit.addEventListener("pointerleave", () => {
     tipEl.style.display = "none"; guide.setAttribute("visibility", "hidden"); mark.setAttribute("visibility", "hidden");
   });
+
   host.replaceChildren(svg);
+  return pts;
 }
-// Most papers have three reviews, so their means fall on multiples of 1/3. Bins of that
-// width centered on those values avoid the empty gaps that round-number bins would leave.
-function thirdsBins(data) {
-  const base = Math.floor(data[0][0]), bins = new Map();
-  for (const [v, c] of data) {
-    const i = Math.round((v - base) * 3);
-    bins.set(i, (bins.get(i) || 0) + c);
-  }
-  const last = Math.max(...bins.keys()), out = [];
-  for (let i = 0; i <= last; i++) {
-    const v = base + i / 3;
-    out.push({ v, c: bins.get(i) || 0, range: `${(v - 1 / 6).toFixed(2)} to ${(v + 1 / 6).toFixed(2)}` });
-  }
-  return out;
-}
-function histChart(host, data, { w = 480, h = 240, name, unit, describe, thirds }) {
-  const m = { t: 20, r: 12, b: 24, l: 42 }, iw = w - m.l - m.r, ih = h - m.t - m.b;
-  const bins = thirds ? thirdsBins(data) : data.map(([v, c]) => ({ v, c }));
-  const total = bins.reduce((sum, b) => sum + b.c, 0);
-  const peak = Math.max(...bins.map(b => b.c)) / total * 100;
-  const step = peak > 40 ? 20 : 10, top = Math.ceil(peak / step) * step;
-  const Y = p => m.t + ih * (1 - p * 100 / top);
-  const svg = el("svg", { viewBox: `0 0 ${w} ${h}`, role: "img", "aria-label": describe });
-  for (let q = 0; q <= top; q += step) {
-    el("line", { x1: m.l, x2: w - m.r, y1: Y(q / 100), y2: Y(q / 100), class: q ? "gridline" : "base" }, svg);
-    el("text", { x: m.l - 6, y: Y(q / 100) + 4, "text-anchor": "end" }, svg).textContent = `${q}%`;
-  }
-  const slot = iw / bins.length, bw = Math.min(slot - 2, 72), base = Y(0);
-  bins.forEach((b, i) => {
-    const p = b.c / total, cx = m.l + slot * (i + .5), x = cx - bw / 2, y = Y(p);
-    const hit = el("rect", { class: "barhit", x: m.l + slot * i, y: m.t, width: slot, height: ih }, svg);
-    tip(hit, `${name} ${b.range || +b.v.toFixed(2)}: ${pct(p)} of ${unit} (${fmt(b.c)})`);
-    const r = Math.min(4, bw / 2, base - y);
-    if (b.c) el("path", { class: "bar", d: `M${x},${base}V${y + r}Q${x},${y} ${x + r},${y}H${x + bw - r}Q${x + bw},${y} ${x + bw},${y + r}V${base}Z` }, svg);
-    el("text", { class: "lab", x: cx, y: y - 6, "text-anchor": "middle" }, svg).textContent = pct(p);
-    el("text", { x: cx, y: h - 6, "text-anchor": "middle" }, svg).textContent = +b.v.toFixed(2);
-  });
-  host.replaceChildren(svg);
-}
+
 function trendChart(host, snaps) {
   const w = 960, h = 220, m = { t: 12, r: 16, b: 24, l: 44 }, iw = w - m.l - m.r, ih = h - m.t - m.b;
   const vals = snaps.map(s => s.mean_rating), pad = Math.max((Math.max(...vals) - Math.min(...vals)) * .25, .05);
@@ -272,6 +379,7 @@ function trendChart(host, snaps) {
   });
   host.replaceChildren(svg);
 }
+
 function dataTable(name, head, rows) {
   const wrap = document.createElement("div");
   const t = document.createElement("table"), cap_ = t.createCaption(); cap_.textContent = name; cap_.style.textAlign = "left";
@@ -282,14 +390,76 @@ function dataTable(name, head, rows) {
   wrap.appendChild(t); return wrap;
 }
 
-function renderSummary(site, s) {
-  $("sub").textContent = `Snapshot of ${when(s.taken_at)}. ${site.snapshots.length} snapshot${site.snapshots.length > 1 ? "s" : ""} so far.`;
-  const c = s.top_share_cutoffs;
+function computeStatsForPapers(papersList) {
+  const rated = papersList.filter(p => p.mean != null);
+  const means = rated.map(p => p.mean).sort((a, b) => b - a);
+  const allRatings = papersList.flatMap(p => p.ratings);
+  const totalReviews = allRatings.length;
+  const meanOfMeans = means.length ? means.reduce((a, b) => a + b, 0) / means.length : null;
+  const medianMean = means.length ? means[Math.floor(means.length / 2)] : null;
+
+  const cutoffs = {};
+  for (const share of [0.05, 0.10, 0.25, 0.50]) {
+    cutoffs[share.toFixed(2)] = means.length ? means[Math.max(0, Math.ceil(share * means.length) - 1)] : null;
+  }
+
+  // Mean distribution: [[mean, count], ...]
+  const meanCounts = new Map();
+  for (const m of means) {
+    const rounded = Math.round(m * 10000) / 10000;
+    meanCounts.set(rounded, (meanCounts.get(rounded) || 0) + 1);
+  }
+  const meanDist = Array.from(meanCounts.entries()).sort((a, b) => a[0] - b[0]);
+
+  // Rating histogram: [[rating, count], ...]
+  const ratingCounts = new Map();
+  for (const r of allRatings) {
+    ratingCounts.set(r, (ratingCounts.get(r) || 0) + 1);
+  }
+  const ratingHist = Array.from(ratingCounts.entries()).sort((a, b) => a[0] - b[0]);
+
+  const pctGte3 = rated.length ? rated.filter(p => p.mean >= 2.999).length / rated.length : 0;
+  const pctGte267 = rated.length ? rated.filter(p => p.mean >= 2.666).length / rated.length : 0;
+
+  return {
+    papersWithRatings: rated.length,
+    totalReviews,
+    meanOfMeans,
+    medianMean,
+    cutoffs,
+    pctGte3,
+    pctGte267,
+    meanDist,
+    ratingHist
+  };
+}
+
+function updateSummaryView() {
+  if (!globalSite) return;
+  const s = globalSite.snapshots[globalSite.snapshots.length - 1];
+  let targetPapers = selectedArea ? allPapers.filter(p => p.area === selectedArea) : allPapers;
+  if (selectedKeywords.size > 0) {
+    targetPapers = targetPapers.filter(p => {
+      for (const sk of selectedKeywords) {
+        if (!p.lowerKeywords.has(sk)) return false;
+      }
+      return true;
+    });
+  }
+  const stats = computeStatsForPapers(targetPapers);
+
+  const filterParts = [];
+  if (selectedArea) filterParts.push(`Area: ${selectedArea}`);
+  if (selectedKeywords.size > 0) filterParts.push(`${selectedKeywords.size} keyword filter${selectedKeywords.size > 1 ? "s" : ""}`);
+  const scopeLabel = filterParts.length ? filterParts.join(", ") : "All Areas";
+  $("filterInfo").textContent = `${fmt(targetPapers.length)} papers in view (${pct(targetPapers.length / (allPapers.length || 1))} of submissions)`;
+
+  const c = stats.cutoffs;
   const tiles = [
-    [fmt(s.papers_with_ratings), "papers with ratings"],
-    [fmt(s.reviews), "reviews"],
-    [fix(s.mean_of_paper_means), "average paper mean"],
-    [fix(s.median_paper_mean), "median paper mean"],
+    [fmt(stats.papersWithRatings), selectedArea ? "area papers with ratings" : "papers with ratings"],
+    [fmt(stats.totalReviews), selectedArea ? "area reviews" : "reviews"],
+    [fix(stats.meanOfMeans), "average paper mean"],
+    [fix(stats.medianMean), "median paper mean"],
     [fix(c["0.10"]), "top 10% cutoff"],
     [fix(c["0.25"]), "top 25% cutoff"],
   ];
@@ -300,162 +470,573 @@ function renderSummary(site, s) {
     d.append(b, sp); return d;
   }));
 
-  const hist = f => s.histograms[f] || [];
-  const others = site.fields.filter(f => f !== "rating");
-  const hosts = {};
+  const titleQualifier = (selectedArea || selectedKeywords.size > 0)
+    ? ` (${[selectedArea, selectedKeywords.size ? `${selectedKeywords.size} kw` : ""].filter(Boolean).join(", ")})`
+    : "";
+  $("meanChartTitle").textContent = `Mean rating per paper${titleQualifier}`;
+  $("meanNote").textContent = `Share of ${fmt(stats.papersWithRatings)} ${scopeLabel} papers at or below each mean rating.`;
+  const meanPts = cdfChart($("meanChart"), stats.meanDist, {
+    name: "Mean", unit: "papers", xStep: .5, describe: "Cumulative distribution of mean rating per paper"
+  });
+
+  $("ratingChartTitle").textContent = `Individual ratings${titleQualifier}`;
+  $("ratingNote").textContent = `Share of ${fmt(stats.totalReviews)} ${scopeLabel} ratings at or below each value.`;
+  const ratingPts = cdfChart($("ratingChart"), stats.ratingHist, {
+    name: "Rating", unit: "ratings", xStep: 1, describe: "Cumulative distribution of individual ratings"
+  });
+
+  // Global other criteria if available
+  const others = (globalSite.fields || []).filter(f => f !== "rating");
+  const hist = f => s.histograms ? (s.histograms[f] || []) : [];
   $("otherCharts").replaceChildren(...others.map(f => {
     const box = document.createElement("div"); box.className = "chart";
     const h = document.createElement("h3"); h.textContent = cap(f);
-    hosts[f] = document.createElement("div");
-    box.append(h, hosts[f]);
+    const host = document.createElement("div");
+    box.append(h, host);
+    cdfChart(host, hist(f), { w: 300, h: 190, name: cap(f), unit: "reviews", xStep: 1, describe: `Cumulative distribution of ${f} scores` });
     return box;
   }));
-  // The example uses the first value that half of the papers reach, so it stays meaningful
-  // in later snapshots.
-  const example = cumulative(s.mean_distribution).find(p => p.p >= .5);
-  const exampleValue = +example.v.toFixed(2);
 
-  function drawCharts(mode) {
-    const cdf = mode === "cdf", draw = cdf ? cdfChart : histChart, kind = cdf ? "Cumulative distribution" : "Histogram";
-    $("viewCdf").setAttribute("aria-pressed", cdf);
-    $("viewHist").setAttribute("aria-pressed", !cdf);
-    $("explain").textContent = cdf
-      ? `CDF stands for cumulative distribution function. A CDF curve shows the share of scores at or below each value. Find a score on the horizontal axis, and the height of the curve gives that share. For example, ${pct(example.p)} of papers have a mean rating of ${exampleValue} or lower, so the other ${pct(1 - example.p)} are above ${exampleValue}.`
-      : "A histogram shows how scores are spread out. The height of each bar is the share of scores at that value, and the bars in each chart add up to 100%.";
-    $("meanNote").textContent = cdf
-      ? `Share of ${fmt(s.papers_with_ratings)} papers with a mean rating at or below each value.`
-      : `Share of ${fmt(s.papers_with_ratings)} papers in each range. Each bar covers 1/3 of a point, centered on its label.`;
-    $("ratingNote").textContent = cdf
-      ? `Share of ${fmt(s.reviews)} ratings at or below each value.`
-      : `Share of ${fmt(s.reviews)} ratings at each value.`;
-    draw($("meanChart"), s.mean_distribution, { name: "Mean", unit: "papers", xStep: .5, thirds: true, describe: `${kind} of mean rating per paper` });
-    draw($("ratingChart"), hist("rating"), { name: "Rating", unit: "ratings", xStep: 1, describe: `${kind} of individual ratings` });
-    others.forEach(f => draw(hosts[f], hist(f), { w: 300, h: 190, name: cap(f), unit: "reviews", xStep: 1, describe: `${kind} of ${f} scores` }));
-    $("tip").style.display = "none";
-  }
-  $("viewCdf").onclick = () => drawCharts("cdf");
-  $("viewHist").onclick = () => drawCharts("hist");
-  drawCharts("cdf");
-
-  const tableRows = (data, digits) => {
-    const pts = cumulative(data), total = pts[pts.length - 1].n;
-    return pts.map(p => [p.v.toFixed(digits), fmt(p.c), pct(p.c / total), pct(p.p)]);
-  };
+  const tableRows = (pts, digits) => pts.map(p => [p.v.toFixed(digits), fmt(p.n), pct(p.p)]);
   $("dataTables").replaceChildren(
-    dataTable("Mean rating per paper", ["Value", "Papers", "Share", "At or below"], tableRows(s.mean_distribution, 2)),
-    ...site.fields.map(f => dataTable(cap(f), ["Value", "Reviews", "Share", "At or below"], tableRows(hist(f), 0)))
+    dataTable(`Mean rating per paper (${scopeLabel})`, ["At or below", "Papers", "Share"], tableRows(meanPts, 2)),
+    dataTable(`Individual ratings (${scopeLabel})`, ["At or below", "Reviews", "Share"], tableRows(ratingPts, 0))
   );
 
-  if (site.snapshots.length > 1) {
+  if (globalSite.snapshots.length > 1) {
     $("trendSection").hidden = false;
-    trendChart($("trendChart"), site.snapshots);
+    trendChart($("trendChart"), globalSite.snapshots);
   }
-  $("foot").textContent = `Shows paper titles, numeric scores and OpenReview links only. Withdrawn (${fmt(s.withdrawn)}) and desk-rejected (${fmt(s.desk_rejected)}) submissions are excluded. Data from the OpenReview API.`;
 }
 
-function renderPapers(site, doc) {
-  const hasChange = (site?.snapshots?.length ?? 0) > 1;
-  const papers = doc.rows.map(([number, forum, title, ratings, conf, first]) => {
-    const mean = ratings.length ? ratings.reduce((a, b) => a + b, 0) / ratings.length : null;
-    return { number, forum, title, ratings, conf, mean, reviews: ratings.length,
-      change: mean != null && first != null ? mean - first : null, key: title.toLowerCase() };
+function renderAreaSummaryTable(papers, areas) {
+  const tbody = $("areaSummaryBody");
+  const rows = [];
+  for (const area of areas) {
+    const areaPapers = papers.filter(p => p.area === area);
+    const stats = computeStatsForPapers(areaPapers);
+    rows.push({
+      area,
+      count: areaPapers.length,
+      share: areaPapers.length / (papers.length || 1),
+      mean: stats.meanOfMeans,
+      median: stats.medianMean,
+      top10: stats.cutoffs["0.10"],
+      top25: stats.cutoffs["0.25"],
+      pctGte3: stats.pctGte3,
+      pctGte267: stats.pctGte267,
+    });
+  }
+  rows.sort((a, b) => b.count - a.count);
+
+  const frag = document.createDocumentFragment();
+  rows.forEach(r => {
+    const tr = document.createElement("tr");
+    const tdArea = document.createElement("td");
+    const btn = document.createElement("a");
+    btn.className = "badge";
+    btn.textContent = r.area;
+    btn.href = "#";
+    btn.onclick = e => { e.preventDefault(); setArea(r.area); };
+    tdArea.appendChild(btn);
+    tr.appendChild(tdArea);
+
+    const cell = (val, isNum = true) => {
+      const td = document.createElement("td");
+      if (isNum) td.className = "num";
+      td.textContent = val;
+      tr.appendChild(td);
+    };
+    cell(fmt(r.count));
+    cell(pct(r.share));
+    cell(fix(r.mean));
+    cell(fix(r.median));
+    cell(fix(r.top10));
+    cell(fix(r.top25));
+    cell(pct(r.pctGte3));
+    cell(pct(r.pctGte267));
+    frag.appendChild(tr);
   });
-  // Rank is fixed by mean rating, so a paper keeps its rank under search and re-sorting.
-  // Tied papers share a rank.
-  const rated = papers.filter(p => p.mean != null).sort((a, b) => b.mean - a.mean);
-  rated.forEach((p, i) => { p.rank = i && p.mean === rated[i - 1].mean ? rated[i - 1].rank : i + 1; });
+  tbody.replaceChildren(frag);
+}
+
+function renderChips() {
+  const chipsEl = $("kwChips");
+  if (!chipsEl) return;
+  chipsEl.replaceChildren();
+
+  for (const norm of selectedKeywords) {
+    const display = keywordDisplayNames.get(norm) || norm;
+    const chip = document.createElement("span");
+    chip.className = "kw-chip";
+    chip.textContent = display;
+
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.setAttribute("aria-label", `Remove ${display}`);
+    btn.innerHTML = "&times;";
+    btn.onclick = e => {
+      e.stopPropagation();
+      toggleKeyword(norm);
+    };
+    chip.appendChild(btn);
+    chipsEl.appendChild(chip);
+  }
+
+  const clearBtn = $("kwClearBtn");
+  if (clearBtn) {
+    clearBtn.style.display = selectedKeywords.size > 0 ? "inline-block" : "none";
+  }
+
+  const countSpan = $("kwSelectedCount");
+  if (countSpan) {
+    countSpan.textContent = selectedKeywords.size > 0 ? `${selectedKeywords.size} selected` : "";
+  }
+}
+
+function renderKeywordDropdown(filterText = "") {
+  const q = (filterText || "").trim().toLowerCase();
+  const listEl = $("kwList");
+  if (!listEl) return;
+
+  const matches = [];
+  for (const [kwLower, count] of keywordCounts.entries()) {
+    if (!q || kwLower.includes(q)) {
+      matches.push({
+        lower: kwLower,
+        display: keywordDisplayNames.get(kwLower) || kwLower,
+        count,
+        selected: selectedKeywords.has(kwLower)
+      });
+    }
+  }
+
+  const countEl = $("kwDropdownCount");
+  if (countEl) {
+    countEl.textContent = `${fmt(matches.length)} keyword${matches.length === 1 ? "" : "s"}`;
+  }
+
+  matches.sort((a, b) => {
+    if (a.selected !== b.selected) return a.selected ? -1 : 1;
+    if (b.count !== a.count) return b.count - a.count;
+    return a.display.localeCompare(b.display);
+  });
+
+  const top100 = matches.slice(0, 100);
+  const frag = document.createDocumentFragment();
+
+  top100.forEach(item => {
+    const div = document.createElement("div");
+    div.className = "kw-item" + (item.selected ? " selected" : "");
+
+    const textSpan = document.createElement("span");
+    textSpan.textContent = (item.selected ? "✓ " : "") + item.display;
+
+    const countSpan = document.createElement("span");
+    countSpan.className = "kw-count";
+    countSpan.textContent = fmt(item.count);
+
+    div.appendChild(textSpan);
+    div.appendChild(countSpan);
+
+    div.addEventListener("mousedown", e => {
+      e.preventDefault();
+      toggleKeyword(item.lower);
+    });
+
+    frag.appendChild(div);
+  });
+
+  if (top100.length === 0) {
+    const emptyDiv = document.createElement("div");
+    emptyDiv.className = "kw-item";
+    emptyDiv.style.color = "var(--text-3)";
+    emptyDiv.style.cursor = "default";
+    emptyDiv.textContent = "No keywords match";
+    frag.appendChild(emptyDiv);
+  }
+
+  listEl.replaceChildren(frag);
+}
+
+function toggleKeyword(kw) {
+  if (!kw) return;
+  const norm = kw.toLowerCase().trim();
+  if (selectedKeywords.has(norm)) {
+    selectedKeywords.delete(norm);
+  } else {
+    selectedKeywords.add(norm);
+  }
+  renderChips();
+  updateSummaryView();
+  page = 0;
+  renderPapers();
+
+  const dropdown = $("kwDropdown");
+  if (dropdown && dropdown.style.display !== "none") {
+    renderKeywordDropdown($("kwInput").value);
+  }
+}
+
+function clearKeywords() {
+  if (selectedKeywords.size === 0) return;
+  selectedKeywords.clear();
+  renderChips();
+  updateSummaryView();
+  page = 0;
+  renderPapers();
+
+  const dropdown = $("kwDropdown");
+  if (dropdown && dropdown.style.display !== "none") {
+    renderKeywordDropdown($("kwInput").value);
+  }
+}
+
+function renderPapers() {
+  const hasChange = (globalSite?.snapshots?.length ?? 0) > 1;
+
+  // Filter papers by area, keywords & search terms
+  const currentView = allPapers.filter(p => {
+    if (selectedArea && p.area !== selectedArea) return false;
+    if (selectedKeywords.size > 0) {
+      for (const sk of selectedKeywords) {
+        if (!p.lowerKeywords.has(sk)) return false;
+      }
+    }
+    if (terms.length && !terms.every(t => p.key.includes(t))) return false;
+    return true;
+  });
+
+  // Fixed ranks are preserved under search and re-sorting
+  const compare = (a, b) => {
+    let x, y;
+    if (sortBy === "rank") {
+      x = selectedArea ? a.areaRank : a.globalRank;
+      y = selectedArea ? b.areaRank : b.globalRank;
+    }
+    else if (sortBy === "globalRank") { x = a.globalRank; y = b.globalRank; }
+    else if (sortBy === "areaRank") { x = a.areaRank; y = b.areaRank; }
+    else { x = a[sortBy]; y = b[sortBy]; }
+
+    if (x == null || y == null) return (x == null) - (y == null) || a.number - b.number;
+    if (typeof x === "string") return dir * (x > y ? 1 : x < y ? -1 : 0) || a.number - b.number;
+    return dir * (x - y) || a.number - b.number;
+  };
+
+  filteredPapers = currentView.sort(compare);
+
   const cols = [
-    { id: "rank", name: "Rank", num: true, sort: true },
+    { id: "rank", name: selectedArea ? "Area Rank" : "Rank", num: true, sort: true },
     { id: "title", name: "Title", sort: true },
+    { id: "area", name: "Primary Area", sort: true },
     { id: "mean", name: "Mean", num: true, sort: true },
     { id: "ratings", name: "Ratings", num: true },
     { id: "reviews", name: "Reviews", num: true, sort: true },
     { id: "conf", name: "Confidence", num: true, sort: true },
   ];
+  if (selectedArea) {
+    cols.splice(1, 0, { id: "globalRank", name: "Conf. Rank", num: true, sort: true });
+  }
   if (hasChange) cols.push({ id: "change", name: "Change", num: true, sort: true });
 
-  let sortBy = "rank", dir = 1, terms = [], page = 0, view = [];
-  const compare = (a, b) => {
-    const x = a[sortBy], y = b[sortBy];
-    if (x == null || y == null) return (x == null) - (y == null) || a.number - b.number;
-    if (typeof x === "string") return dir * x.localeCompare(y) || a.number - b.number;
-    return dir * (x - y) || a.number - b.number;
-  };
-  function head() {
-    $("head").replaceChildren(...cols.map(c => {
-      const th = document.createElement("th");
-      if (c.num) th.className = "num";
-      if (c.sort) {
-        const b = document.createElement("button");
-        b.textContent = c.name + (sortBy === c.id ? (dir < 0 ? " ↓" : " ↑") : "");
-        b.onclick = () => {
-          if (sortBy === c.id) dir = -dir; else { sortBy = c.id; dir = c.id === "title" || c.id === "rank" ? 1 : -1; }
-          page = 0; update();
-        };
-        th.setAttribute("aria-sort", sortBy === c.id ? (dir < 0 ? "descending" : "ascending") : "none");
-        th.appendChild(b);
-      } else th.textContent = c.name;
-      return th;
-    }));
-  }
-  function body() {
-    const start = page * PAGE, frag = document.createDocumentFragment();
-    view.slice(start, start + PAGE).forEach((p, i) => {
-      const tr = document.createElement("tr");
-      const cell = (text, cls) => { const td = document.createElement("td"); if (cls) td.className = cls; td.textContent = text; tr.appendChild(td); return td; };
-      cell(p.rank == null ? "–" : fmt(p.rank), "num");
-      const a = document.createElement("a");
-      a.href = "https://openreview.net/forum?id=" + encodeURIComponent(p.forum);
-      a.target = "_blank"; a.rel = "noopener noreferrer"; a.textContent = p.title;
-      cell("", "title").appendChild(a);
-      cell(fix(p.mean), "num");
-      cell(p.ratings.join(", ") || "–", "num");
-      cell(fmt(p.reviews), "num");
-      cell(fix(p.conf), "num");
-      if (hasChange) cell(p.change == null ? "–" : (p.change > 0 ? "+" : "") + p.change.toFixed(2), "num");
-      frag.appendChild(tr);
-    });
-    $("rows").replaceChildren(frag);
-    const end = Math.min(start + PAGE, view.length);
-    $("count").textContent = view.length ? `${fmt(start + 1)}–${fmt(end)} of ${fmt(view.length)} papers` : "No papers match";
-    $("prev").disabled = page === 0;
-    $("next").disabled = end >= view.length;
-  }
-  function update() {
-    view = papers.filter(p => terms.every(t => p.key.includes(t))).sort(compare);
-    head(); body();
-  }
-  $("search").addEventListener("input", e => { terms = e.target.value.toLowerCase().split(/\s+/).filter(Boolean); page = 0; update(); });
-  $("prev").onclick = () => { page--; body(); };
-  $("next").onclick = () => { page++; body(); };
-  update();
+  // Render headers
+  $("head").replaceChildren(...cols.map(c => {
+    const th = document.createElement("th");
+    if (c.num) th.className = "num";
+    if (c.sort) {
+      const b = document.createElement("button");
+      b.textContent = c.name + (sortBy === c.id ? (dir < 0 ? " ↓" : " ↑") : "");
+      b.onclick = () => {
+        if (sortBy === c.id) dir = -dir;
+        else { sortBy = c.id; dir = c.id === "title" || c.id === "rank" || c.id === "area" || c.id === "globalRank" ? 1 : -1; }
+        page = 0; renderPapers();
+      };
+      th.setAttribute("aria-sort", sortBy === c.id ? (dir < 0 ? "descending" : "ascending") : "none");
+      th.appendChild(b);
+    } else {
+      th.textContent = c.name;
+    }
+    return th;
+  }));
+
+  renderTableBody();
 }
 
-// Always revalidate data: GitHub Pages lets browsers cache files for 10 minutes, and a
-// cached file from an older build must not be paired with a newer page.
+function renderTableBody() {
+  const start = page * PAGE;
+  const frag = document.createDocumentFragment();
+  const slice = filteredPapers.slice(start, start + PAGE);
+  const hasChange = (globalSite?.snapshots?.length ?? 0) > 1;
+
+  slice.forEach(p => {
+    const tr = document.createElement("tr");
+    const cell = (text, cls) => {
+      const td = document.createElement("td");
+      if (cls) td.className = cls;
+      td.textContent = text;
+      tr.appendChild(td);
+      return td;
+    };
+
+    const activeRank = selectedArea ? p.areaRank : p.globalRank;
+    cell(activeRank == null ? "–" : fmt(activeRank), "num");
+    if (selectedArea) {
+      cell(p.globalRank == null ? "–" : fmt(p.globalRank), "num");
+    }
+
+    const titleTd = cell("", "title");
+    const a = document.createElement("a");
+    a.href = "https://openreview.net/forum?id=" + encodeURIComponent(p.forum);
+    a.target = "_blank"; a.rel = "noopener noreferrer";
+    a.textContent = p.title;
+    titleTd.appendChild(a);
+
+    if (p.keywords && p.keywords.length) {
+      const tagsDiv = document.createElement("div");
+      tagsDiv.className = "kw-tags";
+      p.keywords.slice(0, 10).forEach(kw => {
+        const tag = document.createElement("span");
+        tag.className = "kw-tag";
+        if (selectedKeywords.has(kw.toLowerCase())) tag.classList.add("selected");
+        tag.textContent = kw;
+        tag.onclick = e => { e.stopPropagation(); toggleKeyword(kw); };
+        tagsDiv.appendChild(tag);
+      });
+      if (p.keywords.length > 10) {
+        const more = document.createElement("span");
+        more.className = "kw-count";
+        more.textContent = `+${p.keywords.length - 10} more`;
+        tagsDiv.appendChild(more);
+      }
+      titleTd.appendChild(tagsDiv);
+    }
+
+    const areaTd = cell("");
+    const areaBadge = document.createElement("a");
+    areaBadge.className = "badge";
+    areaBadge.textContent = p.area;
+    areaBadge.href = "#";
+    areaBadge.onclick = e => { e.preventDefault(); setArea(p.area); };
+    areaTd.appendChild(areaBadge);
+
+    cell(fix(p.mean), "num");
+    cell(p.ratings.join(", ") || "–", "num");
+    cell(fmt(p.reviews), "num");
+    cell(fix(p.conf), "num");
+    if (hasChange) cell(p.change == null ? "–" : (p.change > 0 ? "+" : "") + p.change.toFixed(2), "num");
+
+    frag.appendChild(tr);
+  });
+
+  $("rows").replaceChildren(frag);
+  const end = Math.min(start + PAGE, filteredPapers.length);
+  $("count").textContent = filteredPapers.length
+    ? `${fmt(start + 1)}–${fmt(end)} of ${fmt(filteredPapers.length)} papers`
+    : "No papers match your search";
+  $("prev").disabled = page === 0;
+  $("next").disabled = end >= filteredPapers.length;
+}
+
+function setArea(area) {
+  selectedArea = area;
+  $("areaFilter").value = area;
+  if (area) {
+    location.hash = "area=" + encodeURIComponent(area);
+  } else {
+    history.replaceState(null, "", location.pathname + location.search);
+  }
+  page = 0;
+  updateSummaryView();
+  renderPapers();
+}
+
+function getInitialArea() {
+  const hash = location.hash.startsWith("#") ? location.hash.slice(1) : location.hash;
+  const params = new URLSearchParams(hash);
+  return params.get("area") || "";
+}
+
+// Always revalidate data: GitHub Pages lets browsers cache files for 10 minutes
 const load = name => fetch(`data/${name}.json`, { cache: "no-cache" }).then(r => {
   if (!r.ok) throw new Error(`${name}: HTTP ${r.status}`);
   return r.json();
 });
 
-// The charts and the paper list are independent, so a failure in one leaves the other working.
 (async () => {
-  const sitePromise = load("site"), papersPromise = load("papers");
-  papersPromise.catch(() => {});
-  let site = null;
+  const sitePromise = load("site");
+  const papersPromise = load("papers");
+
   try {
-    site = await sitePromise;
-    renderSummary(site, site.snapshots[site.snapshots.length - 1]);
-  } catch (e) {
-    console.error(e);
-    $("sub").textContent = "The charts could not be drawn. Please reload the page.";
+    const [site, doc] = await Promise.all([sitePromise, papersPromise]);
+    globalSite = site;
+
+    // Parse papers
+    allPapers = doc.rows.map(([number, forum, title, area, keywords, ratings, conf, first]) => {
+      const kwList = Array.isArray(keywords) ? keywords : [];
+      const mean = ratings.length ? ratings.reduce((a, b) => a + b, 0) / ratings.length : null;
+      return {
+        number, forum, title, area: area || "Uncategorized",
+        keywords: kwList,
+        lowerKeywords: new Set(kwList.map(k => k.toLowerCase())),
+        ratings, conf, mean,
+        reviews: ratings.length,
+        change: mean != null && first != null ? mean - first : null,
+        key: (title + " " + (area || "") + " " + kwList.join(" ")).toLowerCase()
+      };
+    });
+
+    // Build keyword frequency index and display names
+    keywordCounts.clear();
+    keywordDisplayNames.clear();
+    for (const p of allPapers) {
+      const seen = new Set();
+      for (const kw of p.keywords) {
+        if (!kw || typeof kw !== "string") continue;
+        const trimmed = kw.trim();
+        if (!trimmed) continue;
+        const lower = trimmed.toLowerCase();
+        if (!seen.has(lower)) {
+          seen.add(lower);
+          keywordCounts.set(lower, (keywordCounts.get(lower) || 0) + 1);
+        }
+        if (!keywordDisplayNames.has(lower) || (trimmed !== lower && keywordDisplayNames.get(lower) === lower)) {
+          keywordDisplayNames.set(lower, trimmed);
+        }
+      }
+    }
+
+    // Compute global ranks once
+    const globalRated = allPapers.filter(p => p.mean != null).sort((a, b) => b.mean - a.mean);
+    globalRated.forEach((p, i) => {
+      p.globalRank = i && p.mean === globalRated[i - 1].mean ? globalRated[i - 1].globalRank : i + 1;
+    });
+
+    // Compute fixed area ranks once per area
+    const papersByArea = new Map();
+    for (const p of allPapers) {
+      if (!papersByArea.has(p.area)) papersByArea.set(p.area, []);
+      papersByArea.get(p.area).push(p);
+    }
+    for (const [area, areaPaperList] of papersByArea.entries()) {
+      const areaRated = areaPaperList.filter(p => p.mean != null).sort((a, b) => b.mean - a.mean);
+      areaRated.forEach((p, i) => {
+        p.areaRank = i && p.mean === areaRated[i - 1].mean ? areaRated[i - 1].areaRank : i + 1;
+      });
+    }
+
+    // Count areas and populate selector
+    const areaCounts = new Map();
+    for (const p of allPapers) {
+      areaCounts.set(p.area, (areaCounts.get(p.area) || 0) + 1);
+    }
+    const areaList = site.primary_areas && site.primary_areas.length
+      ? site.primary_areas
+      : Array.from(areaCounts.keys()).sort();
+
+    const selectEl = $("areaFilter");
+    selectEl.replaceChildren(
+      new Option(`All Areas (${fmt(allPapers.length)} papers)`, ""),
+      ...areaList.map(a => new Option(`${a} (${fmt(areaCounts.get(a) || 0)})`, a))
+    );
+
+    const initialArea = getInitialArea();
+    if (initialArea && areaCounts.has(initialArea)) {
+      selectedArea = initialArea;
+      selectEl.value = initialArea;
+    }
+
+    selectEl.onchange = e => { setArea(e.target.value); };
+
+    // Sub header info
+    const lastSnap = site.snapshots[site.snapshots.length - 1];
+    $("sub").textContent = `Snapshot of ${when(lastSnap.taken_at)}. ${site.snapshots.length} snapshot${site.snapshots.length > 1 ? "s" : ""} recorded. Filterable by Primary Area.`;
+
+    // Render comparison table
+    renderAreaSummaryTable(allPapers, areaList);
+
+    // Initial view rendering
+    updateSummaryView();
+    renderPapers();
+
+    $("foot").textContent = `Shows paper titles, primary areas, numeric scores and OpenReview links. Withdrawn (${fmt(lastSnap.withdrawn)}) and desk-rejected (${fmt(lastSnap.desk_rejected)}) submissions are excluded. Data from OpenReview API.`;
+
+    // Keyword UI events
+    const kwContainer = document.querySelector(".kw-container");
+    const kwSelector = $("kwSelector");
+    const kwInput = $("kwInput");
+    const kwDropdown = $("kwDropdown");
+    const kwClearBtn = $("kwClearBtn");
+
+    if (kwSelector && kwInput) {
+      kwSelector.addEventListener("click", e => {
+        if (e.target !== kwClearBtn && !e.target.closest(".kw-chip button")) {
+          kwInput.focus();
+        }
+      });
+    }
+
+    let kwInputTimer = null;
+    if (kwInput && kwDropdown) {
+      kwInput.addEventListener("focus", () => {
+        kwDropdown.style.display = "flex";
+        renderKeywordDropdown(kwInput.value);
+      });
+
+      kwInput.addEventListener("input", () => {
+        kwDropdown.style.display = "flex";
+        clearTimeout(kwInputTimer);
+        kwInputTimer = setTimeout(() => {
+          renderKeywordDropdown(kwInput.value);
+        }, 120);
+      });
+
+      kwInput.addEventListener("keydown", e => {
+        if (e.key === "Escape") {
+          kwDropdown.style.display = "none";
+        } else if (e.key === "Backspace" && kwInput.value === "" && selectedKeywords.size > 0) {
+          const arr = Array.from(selectedKeywords);
+          const last = arr[arr.length - 1];
+          toggleKeyword(last);
+        }
+      });
+    }
+
+    if (kwClearBtn) {
+      kwClearBtn.addEventListener("click", e => {
+        e.stopPropagation();
+        clearKeywords();
+        kwInput.focus();
+      });
+    }
+
+    document.addEventListener("click", e => {
+      if (kwContainer && !kwContainer.contains(e.target)) {
+        if (kwDropdown) kwDropdown.style.display = "none";
+      }
+    });
+
+  } catch (err) {
+    console.error("Initialization error:", err);
+    $("sub").textContent = "Error loading conference data. Please reload.";
   }
-  try {
-    renderPapers(site, await papersPromise);
-  } catch (e) {
-    console.error(e);
-    $("count").textContent = "The paper list could not be loaded. Please reload the page.";
-  }
+
+  let searchTimer = null;
+  $("search").addEventListener("input", e => {
+    clearTimeout(searchTimer);
+    searchTimer = setTimeout(() => {
+      terms = e.target.value.toLowerCase().split(/\s+/).filter(Boolean);
+      page = 0;
+      renderPapers();
+    }, 120);
+  });
+  $("prev").onclick = () => { if (page > 0) { page--; renderTableBody(); } };
+  $("next").onclick = () => { page++; renderTableBody(); };
+  window.addEventListener("hashchange", () => {
+    const area = getInitialArea();
+    if (area !== selectedArea) {
+      setArea(areaCounts.has(area) ? area : "");
+    }
+  });
 })();
 </script>
 </body>

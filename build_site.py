@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
-"""Turn downloaded snapshots into the data files behind the GitHub page.
+"""Turn downloaded snapshots into the data files behind the website.
 
 Reads snapshots/ (never committed) and writes docs/data/ (committed). The output holds
-only paper titles, paper numbers, forum ids and numeric scores. Review text, abstracts,
-keywords, authors and reviewer ids are never copied, and check_output() enforces this
-on the final files.
+only paper titles, paper numbers, forum ids, primary areas, keywords, and numeric scores.
+Review text, abstracts, authors and reviewer ids are never copied,
+and check_output() enforces this on the final files.
 
 Each snapshot leaves a small numeric summary in docs/data/snapshots/, so the score
 history survives even after the raw snapshot is deleted.
@@ -48,6 +48,19 @@ def status_of(note):
     return "active"
 
 
+def sanitize_text(text):
+    return " ".join(str(text or "").split())
+
+
+def extract_keywords(raw):
+    val = value(raw)
+    if isinstance(val, list):
+        return [sanitize_text(k) for k in val if sanitize_text(k)]
+    if isinstance(val, str):
+        return [sanitize_text(k) for k in val.split(",") if sanitize_text(k)]
+    return []
+
+
 def read_snapshot(snapshot_dir):
     """Extract only the allowed fields from a raw snapshot."""
     papers, statuses = [], Counter()
@@ -62,10 +75,14 @@ def read_snapshot(snapshot_dir):
                 number = to_number(value(review["content"].get(field)))
                 if number is not None:
                     scores[field].append(number)
+        primary_area = sanitize_text(value(note["content"].get("primary_area"))) or "Uncategorized"
+        keywords = extract_keywords(note["content"].get("keywords"))
         papers.append({
             "number": note["number"],
             "forum": note["forum"],
-            "title": " ".join(str(value(note["content"].get("title")) or "").split()),
+            "title": sanitize_text(value(note["content"].get("title"))),
+            "primary_area": primary_area,
+            "keywords": keywords,
             "scores": scores,
         })
     papers.sort(key=lambda p: p["number"])
@@ -111,7 +128,12 @@ def rows_for_page(papers, first_ratings):
     for p in papers:
         ratings = sorted(p["scores"]["rating"], reverse=True)
         rows.append([
-            p["number"], p["forum"], p["title"], ratings,
+            p["number"],
+            p["forum"],
+            p["title"],
+            p["primary_area"],
+            p["keywords"],
+            ratings,
             mean(p["scores"]["confidence"]),
             mean(first_ratings.get(str(p["number"])) or []),
         ])
@@ -119,20 +141,33 @@ def rows_for_page(papers, first_ratings):
 
 
 def check_output(site, papers_doc):
-    """Stop the build if any text other than a title reached the page data."""
-    allowed_site = {"venue", "generated_at", "latest", "fields", "snapshots"}
+    """Stop the build if any unexpected structure or forbidden text reached the page data."""
+    allowed_site = {"venue", "generated_at", "latest", "fields", "primary_areas", "snapshots"}
     allowed_papers = {"columns", "rows"}
     if set(site) != allowed_site or set(papers_doc) != allowed_papers:
-        raise ValueError("unexpected keys in page data")
+        raise ValueError(f"unexpected keys in page data: site={set(site)}, papers={set(papers_doc)}")
+    expected_cols = ["number", "forum", "title", "primary_area", "keywords", "ratings", "confidence_mean", "first_mean"]
+    if papers_doc["columns"] != expected_cols:
+        raise ValueError(f"unexpected columns: {papers_doc['columns']}")
+    if not isinstance(site.get("primary_areas"), list):
+        raise ValueError("site.json must contain primary_areas list")
+    for area in site["primary_areas"]:
+        if not isinstance(area, str) or not area:
+            raise ValueError(f"invalid primary area in site list: {area}")
+
     for row in papers_doc["rows"]:
-        number, forum, title, ratings, confidence, first_mean = row
-        ok = (isinstance(number, int) and re.fullmatch(r"[\w-]+", forum)
+        number, forum, title, primary_area, keywords, ratings, confidence, first_mean = row
+        ok = (isinstance(number, int)
+              and re.fullmatch(r"[\w-]+", forum)
               and isinstance(title, str)
+              and isinstance(primary_area, str)
+              and isinstance(keywords, list)
+              and all(isinstance(k, str) for k in keywords)
               and all(isinstance(r, (int, float)) for r in ratings)
               and all(v is None or isinstance(v, (int, float))
                       for v in (confidence, first_mean)))
         if not ok:
-            raise ValueError(f"unexpected row for paper {number}")
+            raise ValueError(f"unexpected row for paper {number}: {row}")
 
 
 def write_json(path, data):
@@ -153,8 +188,11 @@ def main(argv=None):
 
     usable = []
     for manifest_path in sorted(args.snapshots.glob("*/manifest.json")):
-        manifest = json.loads(manifest_path.read_text())
-        if manifest["complete"] or args.allow_incomplete:
+        try:
+            manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        except Exception:
+            continue
+        if manifest.get("complete") or args.allow_incomplete:
             usable.append((manifest_path.parent, manifest))
         else:
             print(f"Skipping incomplete snapshot {manifest_path.parent.name}", file=sys.stderr)
@@ -182,8 +220,10 @@ def main(argv=None):
         return 1
     first_ratings = summaries[0]["ratings_by_paper"] if len(summaries) > 1 else {}
 
+    primary_areas = sorted(list({p["primary_area"] for p in latest_papers}))
+
     papers_doc = {
-        "columns": ["number", "forum", "title", "ratings", "confidence_mean", "first_mean"],
+        "columns": ["number", "forum", "title", "primary_area", "keywords", "ratings", "confidence_mean", "first_mean"],
         "rows": rows_for_page(latest_papers, first_ratings),
     }
     site = {
@@ -191,12 +231,13 @@ def main(argv=None):
         "generated_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
         "latest": latest["id"],
         "fields": [f for f in FIELDS if f in latest["histograms"]],
+        "primary_areas": primary_areas,
         "snapshots": [{k: v for k, v in s.items() if k != "ratings_by_paper"} for s in summaries],
     }
     check_output(site, papers_doc)
     write_json(data_dir / "site.json", site)
     write_json(data_dir / "papers.json", papers_doc)
-    print(f"Wrote {data_dir}: {len(papers_doc['rows'])} papers, {len(summaries)} snapshot(s)")
+    print(f"Wrote {data_dir}: {len(papers_doc['rows'])} papers, {len(primary_areas)} primary areas, {len(summaries)} snapshot(s)")
     return 0
 
 

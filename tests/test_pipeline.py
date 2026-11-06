@@ -16,6 +16,7 @@ VENUE = "ICLR.cc/2027/Conference"
 CANARY = "CANARYREVIEWTEXT"
 ABSTRACT = "CANARYABSTRACT"
 AUTHOR = "CANARYAUTHOR"
+SAMPLE_AREA = "Generative Models"
 
 
 def review(number, index, rng, rating=None, late=False):
@@ -39,7 +40,7 @@ def review(number, index, rng, rating=None, late=False):
     }
 
 
-def submission(number, rng, venue_suffix="Submission", n_reviews=3):
+def submission(number, rng, venue_suffix="Submission", n_reviews=3, primary_area=SAMPLE_AREA):
     replies = [review(number, i, rng) for i in range(n_reviews)]
     replies.append({  # a non-review reply must be ignored
         "id": f"c{number}", "forum": f"f{number}",
@@ -52,8 +53,8 @@ def submission(number, rng, venue_suffix="Submission", n_reviews=3):
             "title": {"value": f"Paper  title {number}"},
             "abstract": {"value": ABSTRACT},
             "authors": {"value": [AUTHOR]},
-            "keywords": {"value": [ABSTRACT]},
-            "primary_area": {"value": ABSTRACT},
+            "keywords": {"value": ["reasoning models", "deep learning"]},
+            "primary_area": {"value": primary_area},
             "venueid": {"value": f"{VENUE}/{venue_suffix}"},
         },
         "details": {"directReplies": replies},
@@ -102,7 +103,7 @@ class Pipeline(unittest.TestCase):
         self.tmp.cleanup()
 
     def only_manifest(self):
-        return json.loads(next(self.out.glob("*/manifest.json")).read_text())
+        return json.loads(next(self.out.glob("*/manifest.json")).read_text(encoding="utf-8"))
 
     def test_one_request_per_page(self):
         client = FakeClient(self.raws)
@@ -133,31 +134,36 @@ class Pipeline(unittest.TestCase):
 
     def build(self):
         self.assertEqual(build_site.main(["--snapshots", str(self.out), "--docs", str(self.docs)]), 0)
-        return (json.loads((self.docs / "data/site.json").read_text()),
-                json.loads((self.docs / "data/papers.json").read_text()))
+        return (json.loads((self.docs / "data/site.json").read_text(encoding="utf-8")),
+                json.loads((self.docs / "data/papers.json").read_text(encoding="utf-8")))
 
     def test_page_data_has_no_private_text(self):
         run_download(self.out, FakeClient(self.raws))
         site, papers = self.build()
-        blob = "".join(p.read_text() for p in self.docs.rglob("*.json"))
+        blob = "".join(p.read_text(encoding="utf-8") for p in self.docs.rglob("*.json"))
         for banned in (CANARY, ABSTRACT, AUTHOR, "CANARYSIG", "Reviewer_", "Official_Review"):
             self.assertNotIn(banned, blob)
-        raw = gzip.open(next(self.out.glob("*/page_0000000.json.gz")), "rt").read()
+        raw = gzip.open(next(self.out.glob("*/page_0000000.json.gz")), "rt", encoding="utf-8").read()
         self.assertIn(CANARY, raw)  # the raw data did hold it
 
     def test_scores_are_correct(self):
         run_download(self.out, FakeClient(self.raws))
         site, papers = self.build()
+        self.assertEqual(papers["columns"],
+                         ["number", "forum", "title", "primary_area", "keywords", "ratings", "confidence_mean", "first_mean"])
         rows = {r[0]: r for r in papers["rows"]}
         self.assertNotIn(24, rows)  # withdrawn
         self.assertNotIn(25, rows)  # desk rejected
-        self.assertEqual(rows[26][3], [])  # active, not reviewed yet
-        self.assertEqual(rows[1][2], "Paper title 1")
+        self.assertEqual(rows[26][5], [])  # active, not reviewed yet
         self.assertEqual(rows[1][1], "f1")
+        self.assertEqual(rows[1][2], "Paper title 1")
+        self.assertEqual(rows[1][3], SAMPLE_AREA)
+        self.assertEqual(rows[1][4], ["reasoning models", "deep learning"])
         expected = sorted((r["content"]["rating"]["value"]
                            for r in self.raws[0]["details"]["directReplies"]
                            if r["id"].startswith("r")), reverse=True)
-        self.assertEqual(rows[1][3], expected)  # the comment's rating is not counted
+        self.assertEqual(rows[1][5], expected)  # the comment's rating is not counted
+        self.assertIn(SAMPLE_AREA, site["primary_areas"])
         latest = site["snapshots"][-1]
         self.assertEqual(latest["active"], 24)
         self.assertEqual(latest["withdrawn"], 1)
@@ -169,8 +175,8 @@ class Pipeline(unittest.TestCase):
     def test_second_snapshot_tracks_change(self):
         run_download(self.out, FakeClient(self.raws))
         site, papers = self.build()
-        first_mean = [r for r in papers["rows"] if r[0] == 1][0]
-        first_mean = sum(first_mean[3]) / 3
+        first_row = [r for r in papers["rows"] if r[0] == 1][0]
+        first_mean = sum(first_row[5]) / len(first_row[5])
         for r in self.raws[0]["details"]["directReplies"]:
             if r["id"].startswith("r"):
                 r["content"]["rating"]["value"] = 10
@@ -180,15 +186,15 @@ class Pipeline(unittest.TestCase):
         site, papers = self.build()
         self.assertEqual(len(site["snapshots"]), 2)
         row = [r for r in papers["rows"] if r[0] == 1][0]
-        self.assertEqual(row[3], [10, 10, 10])
-        self.assertAlmostEqual(row[5], first_mean, places=3)
+        self.assertEqual(row[5], [10, 10, 10])
+        self.assertAlmostEqual(row[7], first_mean, places=3)
 
     def save_pages(self, pages):
         folder = self.root / "notes"
         folder.mkdir()
         for index, raws in enumerate(pages):
             (folder / f"notes{index}.json").write_text(
-                json.dumps({"notes": raws, "count": len(self.raws)}))
+                json.dumps({"notes": raws, "count": len(self.raws)}), encoding="utf-8")
         return ["--notes", str(folder), "--out", str(self.out)]
 
     def test_import_complete_pages(self):
@@ -207,6 +213,14 @@ class Pipeline(unittest.TestCase):
         self.assertEqual(build_site.to_number(2.5), 2.5)
         self.assertIsNone(build_site.to_number("n/a"))
         self.assertIsNone(build_site.to_number(None))
+
+    def test_whitespace_area_and_keyword_formats(self):
+        self.assertEqual(build_site.sanitize_text("   "), "")
+        self.assertEqual(build_site.sanitize_text(None), "")
+        self.assertEqual(build_site.extract_keywords("deep learning, reinforcement learning"),
+                         ["deep learning", "reinforcement learning"])
+        self.assertEqual(build_site.extract_keywords(["nlp", "vision"]), ["nlp", "vision"])
+        self.assertEqual(build_site.extract_keywords(""), [])
 
 
 if __name__ == "__main__":
